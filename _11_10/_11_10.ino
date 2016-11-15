@@ -10,7 +10,7 @@
 #include <Wire.h>
 // cac loại led indication
 
-#define ledint 13
+#define ledint 7
 #define ledtimer 10
 #define ledinterrup 12
 #define ledsms 11
