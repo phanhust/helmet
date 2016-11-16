@@ -10,7 +10,7 @@
 #include <Wire.h>
 // cac loại led indication
 
-#define ledint 7
+#define ledint 13
 #define ledtimer 10
 #define ledinterrup 12
 #define ledsms 11
@@ -89,8 +89,11 @@ unsigned int fuck=0;
 // bien cho nut bam sos
 volatile uint8_t tot_overflow;
 // bien cho bluetooth
-unsigned int call;
-unsigned int ignore;
+volatile unsigned int call;
+volatile unsigned int ignore;
+volatile unsigned int off;
+volatile int tt=0;
+//bool i=0;
 void setup() {
   pinMode(6,INPUT_PULLUP);
   pinMode(7,INPUT_PULLUP);
@@ -117,6 +120,7 @@ void setup() {
  
   reset_on();
   setup_sim();
+  delaymillis(400);
   setup_mpu_6050_registers();                                          //Setup the registers of the MPU-6050 (500dfs / +/-8g) and start the gyro
 
 //Set digital output 13 high to indicate startup
@@ -210,18 +214,26 @@ Serial.print("\n");
 
 while(call==1){
   ovc("AT#CE","",1000);
-    delaymillis(400);
+  delaymillis(400);
   ovc("AT#CO","",1000); 
+  delaymillis(400);
   
-   delaymillis(400);
   call=0;
+  tt=1;
+}
+while(off==1){
+   delaymillis(200);
+  ovc("AT#CG","",1000); 
+  off=0;
+  tt=0;
 }
 while(ignore==1){
   
-    delaymillis(400);
-  ovc("AT#CG","",1000); 
+   delaymillis(400);
+  ovc("AT#CF","",1000); 
   
   ignore=0;
+  
 }
 
 if((angle_roll>50)&&(angle_roll<60)&&state==0){
@@ -889,13 +901,27 @@ Clear();
  
 void call_init (){
 delay(50);
+
 if(digitalRead(6)==0){
-call=1;
+delay(30);
+
+if (tt==0) {
+   call=1;
+   
 }
-if(digitalRead(7)==0){
+
+if (tt==1) 
+{  
+  off=1;
+ 
+}
+
+}
+if(!digitalRead(7)){
  ignore=1; 
 }
  
+
 }
  
   char ovc(char* ATcommand, char*  expected_answer1, unsigned int timeout){
