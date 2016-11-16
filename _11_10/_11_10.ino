@@ -339,9 +339,9 @@ unsigned long timecut;
  reset_on();
  digitalWrite(cuttran,HIGH);// bat GPS qua tran
 //reset_on();
- timecut=millis();
- while((unsigned long) (millis()- timecut)<15000 )
- //delay(15000);// thoi gian de thu GPS
+ //timecut=millis();
+// while((unsigned long) (millis()- timecut)<15000 )
+ delaymillis(15000);// thoi gian de thu GPS
  AT=0;
  while( AT==0){
     unsigned int more=0;
@@ -415,9 +415,9 @@ unsigned long timecut;
                   
                   if(more<limit){
                     HTTP=1;// ko cho bat HHTP 
-                    GET=0;
+                   
                     while(sim900a("AT+HTTPPARA=\"CID\",1","OK",1000)!=1);
-                  
+                   GET=0;
                   while(GET==0){
                    
                   more=0;
@@ -473,10 +473,10 @@ unsigned long timecut;
                   more++;
                 }
               
-                   digitalWrite(13,HIGH);
+                 //  digitalWrite(13,HIGH);
                     if (more<limit){
                      more=0;
-                    while(sim900a("AT+HTTPACTION=0","+HTTPACTION:0,200",25000)!=1&&more<limit){
+                    while(sim900a("AT+HTTPACTION=0","+HTTPACTION:0,200",15000)!=1&&more<limit){
                       more++;
                     
                     }
