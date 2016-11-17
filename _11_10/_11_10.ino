@@ -59,7 +59,9 @@ unsigned int HTTP=0;
 unsigned int GET=0;
 unsigned int login=0;
 // biến cho phương thức TCP/HTTP
- String URL="http://lamhust.site88.net//GPS.php?";  
+ //String URL="http://lamhust.site88.net//GPS.php?";  
+ String URL="http://phanhost.netau.net//GPS.php?";  
+//String URL="http://unique-bk-server.herokuapp.com//accidents/new?";
  char *httppara;
 // biến reset
 int pinRest=4;
@@ -114,13 +116,13 @@ void setup() {
 
   Wire.begin();                                                        //Start I2C as master
   Serial.begin(115200);
-  Serial1.begin(115200);
+//  Serial1.begin(115200);
   Serial2.begin(115200); // cong giao tiep vs sim
   Serial3.begin(9600); // cong giao tiep vs GPS
  
   reset_on();
   setup_sim();
-  delaymillis(400);
+  delaymillis(500);
   setup_mpu_6050_registers();                                          //Setup the registers of the MPU-6050 (500dfs / +/-8g) and start the gyro
 
 //Set digital output 13 high to indicate startup
@@ -213,25 +215,30 @@ Serial.print("\n");
  }
 
 while(call==1){
-  ovc("AT#CE","",1000);
-  delaymillis(400);
-  ovc("AT#CO","",1000); 
-  delaymillis(400);
-  
+   Serial1.begin(115200);
+   delaymillis(200);
+  ovc("AT#CE","IG",1000);
+  delaymillis(200);
+ ovc("AT#CO","MC",2000); 
+ delaymillis(200);
+  ovc("AT#CM","OK",1000); 
+  Serial1.end();
   call=0;
   tt=1;
 }
 while(off==1){
-   delaymillis(200);
-  ovc("AT#CG","",1000); 
+   Serial1.begin(115200);
+  delaymillis(200);
+  ovc("AT#CG","IF",1000); 
+  Serial1.end();
   off=0;
   tt=0;
 }
 while(ignore==1){
-  
+   Serial1.begin(115200);
    delaymillis(400);
-  ovc("AT#CF","",1000); 
-  
+  ovc("AT#CF","IF",1000); 
+  Serial1.end();
   ignore=0;
   
 }
@@ -389,7 +396,7 @@ unsigned long timecut;
         
             more=0;
             delaymillis(200);
-            while(sim900a("AT+SAPBR=1,1","OK",10000)!=1&&more<limit){
+            while(sim900a("AT+SAPBR=1,1","OK",15000)!=1&&more<limit){
             more++;
      
             }
@@ -404,8 +411,7 @@ unsigned long timecut;
                 more=0;
                GPRS1=1;
               HTTP=0;
-              //  delay(1000);
-                // turn HTTP mode
+             
                 while(HTTP==0){
                  more=0;
                   while(sim900a("AT+HTTPINIT","OK",15000)!=1&&more<limit){
@@ -416,15 +422,17 @@ unsigned long timecut;
                   if(more<limit){
                     HTTP=1;// ko cho bat HHTP 
                    
-                    while(sim900a("AT+HTTPPARA=\"CID\",1","OK",1000)!=1);
-                   GET=0;
+                   while(sim900a("AT+HTTPPARA=\"CID\",1","OK",1000)!=1&&more<limit){
+                    more++;
+                   }
+                  if (more<limit){
+                    more=0;
+                    GET=0;
+                  
                   while(GET==0){
                    
-                  more=0;
-                  
-                  if(more<limit){
-               
-                 GPS=0;// thiet lap get GPS
+                 if(more<limit){
+                  GPS=0;
                  while(GPS==0){
                  while ( Serial3.available() > 0)
                     {
@@ -473,8 +481,8 @@ unsigned long timecut;
                   more++;
                 }
               
-                 //  digitalWrite(13,HIGH);
-                    if (more<limit){
+                
+                   if (more<limit){
                      more=0;
                     while(sim900a("AT+HTTPACTION=0","+HTTPACTION:0,200",15000)!=1&&more<limit){
                       more++;
@@ -482,7 +490,7 @@ unsigned long timecut;
                     }
                     if(more<limit){
                     more=0;
-                      while(sim900a("AT+HTTPREAD=0,700\r\n","+HTTPREAD:",5000)!=1&&more<limit){
+                    while(sim900a("AT+HTTPREAD=0,700\r\n","+HTTPREAD:",5000)!=1&&more<limit){
                         more++;
                       }
                         if(more<limit){
@@ -493,9 +501,17 @@ unsigned long timecut;
                    digitalWrite(12,!(digitalRead(12)));
                       GET=1;
                      // Serial.println("fuck");
-                          }
+                          } else{
+                      GET=1;
+                      reset_on();
+                      AT=0;
+                    }
                      
-                        }
+                        } else{
+                      GET=1;
+                      reset_on();
+                      AT=0;
+                    }
                    
                    
                     }
@@ -511,6 +527,12 @@ unsigned long timecut;
      
                 
               }
+                else{
+                      GET=1;
+                      reset_on();
+                      AT=0;
+                    }
+          
               } 
   
         }
@@ -529,16 +551,17 @@ unsigned long timecut;
 
    
 }
+
+
+}
 else{
   AT=1;
         reset_on();
         AT=0;
 }
-
-}
 }
  }
- 
+ } 
   
  
  
@@ -611,7 +634,7 @@ delaymillis(800);
   para+="\"";
    // conver para form String-> Char*
   const char* http = para.c_str();
-   httppara = new char[strlen(http) + 5]; // creat chuoi http vs nhieu ki tu hon str_quest
+   httppara = new char[strlen(http) + 20]; // creat chuoi http vs nhieu ki tu hon str_quest
   strcpy(httppara, http );
   //Serial.println(httppara);
   return httppara;
@@ -750,7 +773,7 @@ more++;
   while(sim900a("AT","OK",2000)!=1);
   while(sim900a("AT+CMGF=1","OK",2000)!=1);
   while(sim900a("AT+CNMI=1,2,0,0,0","OK",4000)!=1);
-  
+  // while(ovc("AT#MF","",1000)!=1);
   
 }
 void Clear(){
