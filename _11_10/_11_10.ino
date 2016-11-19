@@ -87,9 +87,8 @@ char money[]="USD";
 char account[]="VND";
 String link="www.goolge.com/maps/place/";
 char* httpparatext; 
-unsigned int fuck=0;
 // bien cho nut bam sos
-volatile uint8_t tot_overflow;
+ unsigned int fuck=0;
 // bien cho bluetooth
 volatile unsigned int call;
 volatile unsigned int ignore;
@@ -102,10 +101,10 @@ void setup() {
   pinMode(ledint,OUTPUT);
   pinMode(12,OUTPUT);
   pinMode(11,OUTPUT);
-   pinMode(10,OUTPUT);
+  pinMode(10,OUTPUT);
   pinMode(cuttran,OUTPUT);
   pinMode(pinRest,OUTPUT);
-  digitalWrite(pinRest,HIGH);
+  //digitalWrite(pinRest,HIGH);
   pinMode(irled, INPUT);
   pinMode(3, INPUT_PULLUP); // sử dụng điện trở kéo lên cho chân số 2, ngắt 0
   pinMode(2, INPUT_PULLUP);
@@ -116,7 +115,7 @@ void setup() {
 
   Wire.begin();                                                        //Start I2C as master
   Serial.begin(115200);
-//  Serial1.begin(115200);
+  Serial1.begin(115200);
   Serial2.begin(115200); // cong giao tiep vs sim
   Serial3.begin(9600); // cong giao tiep vs GPS
  
@@ -201,12 +200,13 @@ void loop() {
   forceCal(fsrReading);
 // RecSMS();
   state=digitalRead(irled);
-Serial.print(angle_pitch); Serial.print("\t"); // 
+/*Serial.print(angle_pitch); Serial.print("\t"); // 
 Serial.print(angle_roll); Serial.print("\t"); // 
 Serial.print(fsrReading); Serial.print("\t"); // 
  Serial.print(fsrForce); Serial.print("\t"); //   
  Serial.print(state); Serial.print("\t"); // 
 Serial.print("\n");
+*/
 //Serial.flush();
  while(fuck==1){
  SOS();
@@ -215,30 +215,45 @@ Serial.print("\n");
  }
 
 while(call==1){
-   Serial1.begin(115200);
+  unsigned int lop=0;// Serial1.begin(115200);
+  unsigned int t=0;
+  while(t==0){
+   delaymillis(400);
+   while(ovc("AT#CE","IG",1000)!=1&&lop<5){
+    lop++;
+   }
+   delaymillis(400);
+   if (lop<limit){
+   lop=0;
+   while(ovc("AT#CO","MC",1000)!=1&&lop<5){
+    lop++; 
+   }
    delaymillis(200);
-  ovc("AT#CE","IG",1000);
-  delaymillis(200);
- ovc("AT#CO","MC",2000); 
- delaymillis(200);
-  ovc("AT#CM","OK",1000); 
-  Serial1.end();
+   if(lop<limit){
+    lop=0;
+    t=1;
+   }else{t=1;}
+   }else{t=1;}
+  }
+
   call=0;
   tt=1;
 }
 while(off==1){
-   Serial1.begin(115200);
-  delaymillis(200);
-  ovc("AT#CG","IF",1000); 
-  Serial1.end();
+  // Serial1.begin(115200);
+    delaymillis(400);
+    while(ovc("AT#CG","OK",1000)!=1); 
+    delaymillis(400);
+ // Serial1.end();
   off=0;
   tt=0;
 }
 while(ignore==1){
-   Serial1.begin(115200);
-   delaymillis(400);
-  ovc("AT#CF","IF",1000); 
-  Serial1.end();
+  // Serial1.begin(115200);
+      delaymillis(400);
+      while(ovc("AT#CF","IF",1000)!=1); 
+      delaymillis(400);
+  //Serial1.end();
   ignore=0;
   
 }
@@ -421,18 +436,18 @@ unsigned long timecut;
                   
                   if(more<limit){
                     HTTP=1;// ko cho bat HHTP 
-                   
+                    more=0;
                    while(sim900a("AT+HTTPPARA=\"CID\",1","OK",1000)!=1&&more<limit){
                     more++;
                    }
                   if (more<limit){
                     more=0;
+                    unsigned int i=0;
                     GET=0;
-                  
                   while(GET==0){
-                   
+                 i++;
                  if(more<limit){
-                  GPS=0;
+                 GPS=0;
                  while(GPS==0){
                  while ( Serial3.available() > 0)
                     {
@@ -490,17 +505,21 @@ unsigned long timecut;
                     }
                     if(more<limit){
                     more=0;
-                    while(sim900a("AT+HTTPREAD=0,700\r\n","+HTTPREAD:",5000)!=1&&more<limit){
+                    while(sim900a("AT+HTTPREAD=0,900\r\n","+HTTPREAD:",10000)!=1&&more<limit){
                         more++;
                       }
                         if(more<limit){
                           more=0;
-                  
+                          if(i<4){
                    TIMSK1 = (0 << TOIE1);                  // Overflow interrupt unnable 
                    digitalWrite(cuttran,LOW);//tat GPS
                    digitalWrite(12,!(digitalRead(12)));
-                      GET=1;
-                     // Serial.println("fuck");
+                     GET=1;
+                          }else{
+                            Serial.println("fuck");
+                            GET=0;
+                          }
+                     
                           } else{
                       GET=1;
                       reset_on();
@@ -977,9 +996,9 @@ if(!digitalRead(7)){
     while((answer == 0) && (unsigned long)(millis() - previous) < timeout);
        
   Serial1.println(response);
-    Serial.println(response);
-   Serial1.flush();
-    Serial.flush();
+  Serial.println(response);
+ Serial1.flush();
+  Serial.flush();
     return answer;
 }
 
