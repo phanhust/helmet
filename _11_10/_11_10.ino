@@ -1,3 +1,4 @@
+
  /* sim  khi chờ dùng dòng 10mA
   *  khi hoạt động từ 100mA-2a
   *  neo khi hoạt động dòng 45mA
@@ -58,6 +59,7 @@ unsigned int GPRS1=0;
 unsigned int HTTP=0;
 unsigned int GET=0;
 unsigned int login=0;
+unsigned int i;
 // biến cho phương thức TCP/HTTP
  //String URL="http://lamhust.site88.net//GPS.php?";  
  String URL="http://phanhost.netau.net//GPS.php?";  
@@ -200,13 +202,13 @@ void loop() {
   forceCal(fsrReading);
 // RecSMS();
   state=digitalRead(irled);
-/*Serial.print(angle_pitch); Serial.print("\t"); // 
+Serial.print(angle_pitch); Serial.print("\t"); // 
 Serial.print(angle_roll); Serial.print("\t"); // 
 Serial.print(fsrReading); Serial.print("\t"); // 
  Serial.print(fsrForce); Serial.print("\t"); //   
  Serial.print(state); Serial.print("\t"); // 
 Serial.print("\n");
-*/
+
 //Serial.flush();
  while(fuck==1){
  SOS();
@@ -373,7 +375,7 @@ unsigned long timecut;
     if (more<limit){
       more=0;
       while(sim900a("AT+CREG?","+CREG: 0,1",8000)!=1&&more<limit)
-   //  while(sim900a("AT","OK",1000)!=1&&more<limit)
+  
       {
       more++;
       }
@@ -390,8 +392,8 @@ unsigned long timecut;
         
           }
            
-          if(more<limit){          
-            // dang ki GPRS
+          if(more<limit){         
+           more=0;
            login=0;
             while(login==0){
             while(sim900a("AT+SAPBR=3,1,\"Contype\",\"GPRS\"","OK",2000)!=1);
@@ -442,13 +444,16 @@ unsigned long timecut;
                    }
                   if (more<limit){
                     more=0;
-                    unsigned int i=0;
+                    i=0;
                     GET=0;
-                  while(GET==0){
-                 i++;
+                 while(GET==0){
+              
+                 more=0;
                  if(more<limit){
+                    i++;
                  GPS=0;
                  while(GPS==0){
+                   
                  while ( Serial3.available() > 0)
                     {
                       
@@ -486,11 +491,12 @@ unsigned long timecut;
                     Serial3.flush();
                    
                     if(nmea[1]=="A"){
-                 //  Serial.println("GET GPS succesfully");
                      GPS=1;
-                   }
+                   
+                      }
                    }
                   get_gpsdata(nmea[2],nmea[4],user);
+                  if(more<limit){
                   more=0;
                  while(sim900a(httppara,"OK",1000)!=1&&more<limit){
                   more++;
@@ -508,25 +514,21 @@ unsigned long timecut;
                     while(sim900a("AT+HTTPREAD=0,900\r\n","+HTTPREAD:",10000)!=1&&more<limit){
                         more++;
                       }
-                        if(more<limit){
-                          more=0;
                           if(i<4){
+                            AT=0;
+                            GET=0;
+                          }
+                          if(i>4){
+                            
                    TIMSK1 = (0 << TOIE1);                  // Overflow interrupt unnable 
                    digitalWrite(cuttran,LOW);//tat GPS
                    digitalWrite(12,!(digitalRead(12)));
                      GET=1;
-                          }else{
-                            Serial.println("fuck");
-                            GET=0;
                           }
+                         
                      
-                          } else{
-                      GET=1;
-                      reset_on();
-                      AT=0;
-                    }
-                     
-                        } else{
+                        } 
+                        else{
                       GET=1;
                       reset_on();
                       AT=0;
@@ -540,8 +542,9 @@ unsigned long timecut;
                       AT=0;
                     }
           
-                    
+                   }
                   }
+                
                 }
      
                 
@@ -1186,3 +1189,4 @@ if(!digitalRead(7)){
  
  
  
+
