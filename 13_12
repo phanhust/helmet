@@ -2,7 +2,7 @@
 #define ledtimer 10
 #define ledinterrup 12
 #define ledsms 11
-#include <avr/interrupt.h>
+#include <TimerOne.h>
 #include <Wire.h>
 // #include <I2Cdev.h>
 // bien nutbam
@@ -47,6 +47,9 @@ int RcvdEnd = 0;
 char MsgMob[15];
 char MsgTxt[50];
 int MsgLength = 0;
+char sms_num[3];
+String instr="";
+int sms_flag=0;
 unsigned int done = 0; //0 la chua setup xong,1 la setup xong
 // bien cho smstext
 char number[50] = "";
@@ -116,19 +119,20 @@ void setup() {
   setup_mpu_6050_registers();
   for (int cal_int = 0; cal_int < 2000 ; cal_int ++) {                 //Run this code 2000 times
     if (cal_int % 125 == 0)Serial.print(".");                             //Print a dot on the LCD every 125 readings
-    //read_mpu_6050_data();
-    Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
-    Wire.write(0x3B);                                                    //Send the requested starting register
-    Wire.endTransmission();                                              //End the transmission
-    Wire.requestFrom(0x68, 14);                                          //Request 14 bytes from the MPU-6050
-    while (Wire.available() < 14);                                       //Wait until all the bytes are received
-    acc_x = Wire.read() << 8 | Wire.read();                              //Add the low and high byte to the acc_x variable
-    acc_y = Wire.read() << 8 | Wire.read();                              //Add the low and high byte to the acc_y variable
-    acc_z = Wire.read() << 8 | Wire.read();                              //Add the low and high byte to the acc_z variable
-    temperature = Wire.read() << 8 | Wire.read();                        //Add the low and high byte to the temperature variable
-    gyro_x = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_x variable
-    gyro_y = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_y variable
-    gyro_z = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_z variable
+   // read_mpu_6050_data();
+   
+  Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
+  Wire.write(0x3B);                                                    //Send the requested starting register
+  Wire.endTransmission();                                              //End the transmission
+  Wire.requestFrom(0x68, 14);                                          //Request 14 bytes from the MPU-6050
+  while (Wire.available() < 14);                                       //Wait until all the bytes are received
+  acc_x = Wire.read() << 8 | Wire.read();                              //Add the low and high byte to the acc_x variable
+  acc_y = Wire.read() << 8 | Wire.read();                              //Add the low and high byte to the acc_y variable
+  acc_z = Wire.read() << 8 | Wire.read();                              //Add the low and high byte to the acc_z variable
+  temperature = Wire.read() << 8 | Wire.read();                        //Add the low and high byte to the temperature variable
+  gyro_x = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_x variable
+  gyro_y = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_y variable
+  gyro_z = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_z variable
 
     gyro_x -= gyro_x_cal;                                                //Subtract the offset calibration value from the raw gyro_x value
     gyro_y -= gyro_y_cal;                                                //Subtract the offset calibration value from the raw gyro_y value
@@ -149,8 +153,8 @@ void setup() {
 
 void loop() {
 
-  //read_mpu_6050_data();                                                //Read the raw acc and gyro data from the MPU-6050
-  Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
+  //read_mpu_6050_data();   
+   Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
   Wire.write(0x3B);                                                    //Send the requested starting register
   Wire.endTransmission();                                              //End the transmission
   Wire.requestFrom(0x68, 14);                                          //Request 14 bytes from the MPU-6050
@@ -162,6 +166,8 @@ void loop() {
   gyro_x = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_x variable
   gyro_y = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_y variable
   gyro_z = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_z variable
+//Read the raw acc and gyro data from the MPU-6050
+                        //Add the low and high byte to the gyro_z variable
 
   gyro_x -= gyro_x_cal;                                                //Subtract the offset calibration value from the raw gyro_x value
   gyro_y -= gyro_y_cal;                                                //Subtract the offset calibration value from the raw gyro_y value
@@ -225,7 +231,7 @@ void loop() {
     fsrForce /= 30;
   }
 
-  if ((angle_roll > 50) && (angle_roll < 60) && digitalRead(irled) == 1) {
+ /* if ((angle_roll > 50) && (angle_roll < 60) && digitalRead(irled) == 1) {
     digitalWrite(ledtimer, HIGH);
     //digitalWrite(13,!digitalRead(13));
     PRR0 |= (0 << PRTIM1); // bat timer
@@ -243,10 +249,15 @@ void loop() {
     TIMSK1 = (1 << TOIE1);                  // Overflow interrupt enable
     sei();                                  // cho phép ngắt toàn cục
 
+  }*/
+
+  if ((angle_roll > 50) && (angle_roll < 60) && digitalRead(irled) == 1) {
+    digitalWrite(ledtimer, HIGH);
+    //digitalWrite(13,!digitalRead(13));
+    Timer1.initialize(1000000);
+    Timer1.attachInterrupt(falling);
   }
-
-
-  while (fuck == 1) {
+  if (fuck == 1) {
     delay(1000);
     digitalWrite(ledinterrup, HIGH);
     digitalWrite(ledtimer, !(digitalRead(ledtimer)));
@@ -476,7 +487,25 @@ void loop() {
       }
     }
   }
-  while (call == 1) {
+ // if(sms_flag==1){
+   /*  Serial.println("New Message");
+    int ind=instr.indexOf("+CMTI: \"SM\",");  // tim vi tri cua doan text
+    ind+=12;
+    int k=0;
+    Serial.println(ind);
+    while(1)
+    {
+      while(instr[ind]!= 0x0D)
+      {
+        sms_num[k++]=instr[ind++];
+      }
+      break;
+    }
+    ind=0;
+    sms_flag=0;*/
+    
+ // }
+  if (call == 1) {
     unsigned int lop = 0; // Serial1.begin(115200);
     unsigned int t = 0;
     while (t == 0) {
@@ -505,12 +534,12 @@ void loop() {
     call = 0;
     tt = 1;
   }
-  while (off == 1) {
+  if (off == 1) {
     while (ovc("AT#CG", "OK", 1000) != 1);
     off = 0;
     tt = 0;
   }
-  while (ignore == 1) {
+  if (ignore == 1) {
     while (ovc("AT#CF", "IF", 1000) != 1);
 
     ignore = 0;
@@ -526,7 +555,21 @@ void loop() {
 
 
 }
+/*void read_mpu_6050_data() {                                            //Subroutine for reading the raw gyro and accelerometer data
+  Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
+  Wire.write(0x3B);                                                    //Send the requested starting register
+  Wire.endTransmission();                                              //End the transmission
+  Wire.requestFrom(0x68, 14);                                          //Request 14 bytes from the MPU-6050
+  while (Wire.available() < 14);                                       //Wait until all the bytes are received
+  acc_x = Wire.read() << 8 | Wire.read();                              //Add the low and high byte to the acc_x variable
+  acc_y = Wire.read() << 8 | Wire.read();                              //Add the low and high byte to the acc_y variable
+  acc_z = Wire.read() << 8 | Wire.read();                              //Add the low and high byte to the acc_z variable
+  temperature = Wire.read() << 8 | Wire.read();                        //Add the low and high byte to the temperature variable
+  gyro_x = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_x variable
+  gyro_y = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_y variable
+  gyro_z = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_z variable
 
+}*/
 void setup_mpu_6050_registers() {
   //Activate the MPU-6050
   Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
@@ -558,7 +601,7 @@ void reset_on() {
 
 
 
-ISR (TIMER1_OVF_vect)
+/*ISR (TIMER1_OVF_vect)
 {
   TCNT1 = 62500;
   if ((angle_roll < 20) && digitalRead(irled) == 1) // khi doi mu thi gia tri irled=0
@@ -566,6 +609,15 @@ ISR (TIMER1_OVF_vect)
     if (fsrForce < 10) {
       fuck = 1;
       TCNT1 = 62500;
+    }
+  }
+}*/
+void falling() {
+  if ((angle_roll < 20) && digitalRead(irled) == 1) // khi doi mu thi gia tri irled=0
+  {
+    if (fsrForce < 10) {
+      fuck = 1;
+
     }
   }
 }
@@ -719,6 +771,114 @@ String ConvertLng() {
   return lngfirst;
 }
 /*void serialEvent2() {
+   while(Serial2.available()!=0)
+{
+char data = Serial2.read();
+    instr+=data;
+   if(instr.indexOf("+CMT")>=0) // kiem tra phan hoi tin nhan
+    {
+      sms_flag=1;
+    }
+}
+}*/
+  
+char* sms_gps(String x, String y) {
+
+  // xu ly chuoi trc khi chay at
+
+  link += x;
+  link += ",";
+  link += y;
+
+  // conver para form String-> Char*
+  const char* http = link.c_str();
+  httpparatext = new char[strlen(http) + 1]; // creat chuoi http vs nhieu ki tu hon str_quest
+  strcpy(httpparatext, http );
+  //Serial.println(httppara);
+  return httpparatext;
+}
+void Send(char sms[]) {
+  unsigned int mes = 0;
+  while (mes == 0) {
+    unsigned int more = 0;
+    while (sim900a("AT+CMGF=1", "OK", 1000) != 1 && more < limit) {
+      more++;
+    }
+    if (more < limit) {
+      more = 0;
+     snprintf(number, sizeof(number), "AT+CMGS=\"%s\"", MsgMob);
+      while (sim900a(number, ">", 4000) != 1 && more < limit) {
+        more++;
+      }
+      delay(500);
+      if (more < limit) {
+        more = 0;
+        Serial2.println(sms);
+        //   Serial.println(sms);
+        //Serial2.print(" fuck off");
+        delay(500);
+        Serial2.write(0x1A);
+        Serial2.write(0x0D);
+        Serial2.write(0x0A);
+      
+        while (sim900a("", "OK", 5000) != 1 && more < limit) {
+          more++;
+        }
+        if (more < limit) {
+          more = 0;
+          //Serial.println( "sms da gui");
+          mes = 1;
+        }
+        else {
+          reset_on();
+
+        }
+      }
+      else {
+        reset_on();
+      }
+    }
+    else {
+      reset_on();
+    }
+  }
+}
+char ovc(char* ATcommand, char*  expected_answer1, unsigned int timeout){
+
+    unsigned char x=0,  answer=0;
+    char response[100];
+    unsigned long previous;
+    memset(response, '\0', 100);    //
+    delay(100);
+     while( Serial1.available() > 0) Serial1.read();    // 
+   Serial1.println(ATcommand);    // Send the AT command 
+    
+    Serial.println(ATcommand);
+    x = 0;
+    previous = millis();
+
+   
+    do{
+        if(Serial1.available() != 0){    
+            response[x] = Serial1.read();
+            x++;
+         
+            if (strstr(response, expected_answer1) != NULL)    
+            {
+                answer = 1;
+            }
+        }
+        // Waits for the asnwer with time out
+    }
+    while((answer == 0) && (unsigned long)(millis() - previous) < timeout);
+       
+  Serial1.println(response);
+  Serial.println(response);
+ Serial1.flush();
+  Serial.flush();
+    return answer;
+}
+void serialEvent2() {
   while(Serial2.available()!=0)
   {
   char data = Serial2.read();
@@ -822,103 +982,3 @@ String ConvertLng() {
   }
 
   }
-*/
-
-
-char* sms_gps(String x, String y) {
-
-  // xu ly chuoi trc khi chay at
-
-  link += x;
-  link += ",";
-  link += y;
-
-  // conver para form String-> Char*
-  const char* http = link.c_str();
-  httpparatext = new char[strlen(http) + 1]; // creat chuoi http vs nhieu ki tu hon str_quest
-  strcpy(httpparatext, http );
-  //Serial.println(httppara);
-  return httpparatext;
-}
-void Send(char sms[]) {
-  unsigned int mes = 0;
-  while (mes == 0) {
-    unsigned int more = 0;
-    while (sim900a("AT+CMGF=1", "OK", 1000) != 1 && more < limit) {
-      more++;
-    }
-    if (more < limit) {
-      more = 0;
-      snprintf(number, sizeof(number), "AT+CMGS=\"%s\"", MsgMob);
-      while (sim900a(number, ">", 4000) != 1 && more < limit) {
-        more++;
-      }
-      delay(500);
-      if (more < limit) {
-        more = 0;
-        Serial2.println(sms);
-        //   Serial.println(sms);
-        //Serial2.print(" fuck off");
-        delay(500);
-        Serial2.write(0x1A);
-        Serial2.write(0x0D);
-        Serial2.write(0x0A);
-      
-        while (sim900a("", "OK", 5000) != 1 && more < limit) {
-          more++;
-        }
-        if (more < limit) {
-          more = 0;
-          //Serial.println( "sms da gui");
-          mes = 1;
-        }
-        else {
-          reset_on();
-
-        }
-      }
-      else {
-        reset_on();
-      }
-    }
-    else {
-      reset_on();
-    }
-  }
-}
-char ovc(char* ATcommand, char*  expected_answer1, unsigned int timeout){
-
-    unsigned char x=0,  answer=0;
-    char response[100];
-    unsigned long previous;
-    memset(response, '\0', 100);    //
-    delay(100);
-     while( Serial1.available() > 0) Serial1.read();    // 
-   Serial1.println(ATcommand);    // Send the AT command 
-    
-    Serial.println(ATcommand);
-    x = 0;
-    previous = millis();
-
-   
-    do{
-        if(Serial1.available() != 0){    
-            response[x] = Serial1.read();
-            x++;
-         
-            if (strstr(response, expected_answer1) != NULL)    
-            {
-                answer = 1;
-            }
-        }
-        // Waits for the asnwer with time out
-    }
-    while((answer == 0) && (unsigned long)(millis() - previous) < timeout);
-       
-  Serial1.println(response);
-  Serial.println(response);
- Serial1.flush();
-  Serial.flush();
-    return answer;
-}
-
